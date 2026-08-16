@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Доска — общие заметки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1F23;
+    --paper:#EBEEE8;
+    --surface:#FFFFFF;
+    --line:#D6DACF;
+    --teal:#2F8F86;
+    --teal-dark:#256F68;
+    --amber:#C99A3E;
+    --muted:#6B7268;
+    --danger:#B8503E;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  /* ---------- layout shell ---------- */
+  #app{display:flex; min-height:100vh;}
+
+  .topbar{
+    position:sticky; top:0; z-index:10;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand .pin-mark{
+    width:26px;height:26px;border-radius:50%;
+    background:var(--teal); color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px; font-weight:600;
+  }
+  .brand h1{font-size:16px; margin:0; font-weight:600; letter-spacing:.2px;}
+
+  button{
+    font-family:'Inter',sans-serif;
+    cursor:pointer; border:none; border-radius:8px;
+    padding:9px 16px; font-size:14px; font-weight:500;
+    transition:transform .08s ease, background .15s ease;
+  }
+  button:active{transform:scale(.97);}
+  .btn-primary{background:var(--teal); color:#fff;}
+  .btn-primary:hover{background:var(--teal-dark);}
+  .btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--muted); color:var(--ink);}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid #E3C4BC;}
+  .btn-small{padding:6px 12px; font-size:13px;}
+
+  input, textarea{
+    font-family:'Inter',sans-serif;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:14px;
+    background:var(--surface);
+    color:var(--ink);
+    width:100%;
+  }
+  input:focus, textarea:focus, button:focus-visible{
+    outline:2px solid var(--teal); outline-offset:1px;
+  }
+  input.pin-input{
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:4px; text-align:center; font-size:20px;
+  }
+
+  /* ---------- screens ---------- */
+  .screen{ width:100%; min-height:100vh; display:flex; flex-direction:column; }
+  .center-wrap{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:32px;
+    width:100%; max-width:380px;
+  }
+  .card h2{margin:0 0 6px; font-size:20px;}
+  .card p.sub{margin:0 0 22px; color:var(--muted); font-size:13.5px; line-height:1.5;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; font-weight:500;}
+  .error-msg{color:var(--danger); font-size:13px; margin-top:10px; display:none;}
+
+  /* ---------- topic list ---------- */
+  .list-wrap{max-width:640px; margin:0 auto; width:100%; padding:32px 20px;}
+  .list-wrap h2{font-size:22px; margin-bottom:4px;}
+  .list-wrap p.sub{color:var(--muted); margin-top:0; margin-bottom:24px; font-size:14px;}
+  .topic-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px 18px; margin-bottom:10px;
+    cursor:pointer; transition:border-color .12s ease;
+  }
+  .topic-row:hover{border-color:var(--teal);}
+  .topic-row .t-title{font-weight:600; font-size:15px;}
+  .topic-row .t-meta{color:var(--muted); font-size:12.5px; margin-top:3px;}
+  .lock-icon{color:var(--amber); font-size:13px;}
+  .empty-state{
+    text-align:center; padding:48px 20px; color:var(--muted);
+    border:1px dashed var(--line); border-radius:var(--radius);
+  }
+
+  /* ---------- topic view ---------- */
+  .topic-view{max-width:720px; margin:0 auto; width:100%; padding:24px 20px 60px;}
+  .topic-header{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px;}
+  .topic-header h2{font-size:22px; margin:0;}
+  .topic-header .who{font-size:13px; color:var(--muted);}
+  textarea#noteContent{
+    min-height:160px; resize:vertical; line-height:1.55; font-size:14.5px;
+    margin-top:16px;
+  }
+  .save-state{font-size:12px; color:var(--muted); margin-top:6px; height:16px;}
+
+  .comments-section{margin-top:32px;}
+  .comments-section h3{font-size:14px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:14px;}
+  .comment{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:8px; padding:12px 14px; margin-bottom:8px;
+  }
+  .comment .c-head{display:flex; justify-content:space-between; margin-bottom:4px;}
+  .comment .c-name{font-weight:600; font-size:13.5px;}
+  .comment .c-time{font-size:11.5px; color:var(--muted);}
+  .comment .c-text{font-size:14px; line-height:1.5; word-break:break-word; white-space:pre-wrap;}
+  .comment .c-text a{color:var(--teal-dark);}
+  .comment-form{display:flex; gap:8px; margin-top:14px;}
+  .comment-form input{flex:1;}
+
+  /* ---------- admin ---------- */
+  .admin-bar{
+    display:flex; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);
+  }
+  .new-topic-form .field-row{display:flex; gap:10px;}
+  .new-topic-form .field-row .field{flex:1;}
+
+  .footer-link{
+    text-align:center; padding:20px; font-size:12px; color:var(--muted);
+  }
+  .footer-link a{color:var(--muted);}
+
+  @media (max-width:480px){
+    .card{padding:24px 20px;}
+    .topic-header{flex-direction:column; align-items:flex-start; gap:2px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<!-- Firebase (compat build — no bundler needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================
+   НАСТРОЙКИ — вставьте сюда свои данные из Firebase Console
+   ========================================================= */
+const firebaseConfig = {<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAdNRSQC1WP2iEpiajRmEIUKebNuGM5T7s",
+    authDomain: "msv-board.firebaseapp.com",
+    projectId: "msv-board",
+    storageBucket: "msv-board.firebasestorage.app",
+    messagingSenderId: "168120737897",
+    appId: "1:168120737897:web:b8c8471aa6b66e953d82f8",
+    measurementId: "G-XH2CL2Q79R"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ============ helpers ============ */
+async function sha256(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function linkify(text){
+  const escaped = escapeHtml(text);
+  return escaped.replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+}
+function fmtTime(ts){
+  if(!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+function genPin(){
+  return String(Math.floor(1000 + Math.random()*9000)); // 4-значный
+}
+
+/* ============ session state ============ */
+let session = {
+  isAdmin: false,
+  accessedTopics: {}, // topicId -> true, once pin verified this browser session
+  userName: localStorage.getItem('board_username') || ''
+};
+
+const root = document.getElementById('app');
+
+/* ============ router ============ */
+let currentTopicId = null;
+let unsubscribers = [];
+
+function clearSubs(){
+  unsubscribers.forEach(u => u());
+  unsubscribers = [];
+}
+
+function navigate(view, topicId){
+  clearSubs();
+  currentTopicId = topicId || null;
+  if(view === 'list') renderTopicList();
+  if(view === 'topic') renderTopicView(topicId);
+}
+
+/* ============ TOPBAR ============ */
+function topbarHtml(){
+  return `
+  <div class="topbar">
+    <div class="brand">
+      <div class="pin-mark">●</div>
+      <h1 class="display">Доска</h1>
+    </div>
+    <div style="display:flex; gap:8px;">
+      ${session.isAdmin
+        ? `<button class="btn-ghost btn-small" id="btnLogoutAdmin">Выйти из админки</button>`
+        : `<button class="btn-ghost btn-small" id="btnAdminLogin">Вход для админа</button>`}
+    </div>
+  </div>`;
+}
+
+function bindTopbar(){
+  const btnAdmin = document.getElementById('btnAdminLogin');
+  if(btnAdmin) btnAdmin.onclick = renderAdminLogin;
+  const btnOut = document.getElementById('btnLogoutAdmin');
+  if(btnOut) btnOut.onclick = () => { session.isAdmin = false; navigate('list'); };
+}
+
+/* ============ SCREEN: topic list ============ */
+function renderTopicList(){
+  root.innerHTML = `
+    <div class="screen">
+      ${topbarHtml()}
+      <div class="list-wrap">
+        <h2 class="display">Общие заметки</h2>
+        <p class="sub">Выберите тему. Для входа нужен PIN-код темы.</p>
+        <div id="topicList"><div class="empty-state">Загрузка…</div></div>
+        ${session.isAdmin ? adminCreateFormHtml() : ''}
+      </div>
+      <div class="footer-link">Внутренний инструмент команды · не хранит конфиденциальные данные</div>
+    </div>`;
+  bindTopbar();
+  if(session.isAdmin) bindAdminCreateForm();
+
+  const unsub = db.collection('topics').orderBy('createdAt','desc').onSnapshot(snap => {
+    const listEl = document.getElementById('topicList');
+    if(!listEl) return;
+    if(snap.empty){
+      listEl.innerHTML = `<div class="empty-state">Пока нет ни одной темы.${session.isAdmin ? ' Создайте первую ниже.' : ''}</div>`;
+      return;
+    }
+    listEl.innerHTML = '';
+    snap.forEach(doc => {
+      const t = doc.data();
+      const row = document.createElement('div');
+      row.className = 'topic-row';
+      row.innerHTML = `
+        <div>
+          <div class="t-title">${escapeHtml(t.title || 'Без названия')}</div>
+          <div class="t-meta">создано ${fmtTime(t.createdAt)}</div>
+        </div>
+        <div class="lock-icon mono">PIN</div>`;
+      row.onclick = () => navigate('topic', doc.id);
+      listEl.appendChild(row);
+    });
+  }, err => {
+    document.getElementById('topicList').innerHTML =
+      `<div class="empty-state">Не удалось загрузить темы.<br><span class="mono" style="font-size:11px;">${escapeHtml(err.message)}</span></div>`;
+  });
+  unsubscribers.push(unsub);
+}
+
+function adminCreateFormHtml(){
+  return `
+  <div class="card new-topic-form" style="max-width:none; margin-top:24px;">
+    <h2 class="display" style="font-size:16px;">Новая тема</h2>
+    <div class="field-row">
+      <div class="field">
+        <label>Название темы</label>
+        <input id="newTopicTitle" placeholder="Например: Проект «Атлас»">
+      </div>
+      <div class="field" style="max-width:140px;">
+        <label>PIN (4 цифры)</label>
+        <input id="newTopicPin" class="mono" maxlength="4" placeholder="${genPin()}">
+      </div>
+    </div>
+    <button class="btn-primary" id="btnCreateTopic">Создать тему</button>
+    <div class="error-msg" id="createTopicError"></div>
+  </div>`;
+}
+
+function bindAdminCreateForm(){
+  const btn = document.getElementById('btnCreateTopic');
+  const pinField = document.getElementById('newTopicPin');
+  if(!pinField.value) pinField.placeholder = genPin();
+  btn.onclick = async () => {
+    const title = document.getElementById('newTopicTitle').value.trim();
+    let pin = document.getElementById('newTopicPin').value.trim();
+    const errEl = document.getElementById('createTopicError');
+    errEl.style.display = 'none';
+    if(!title){ errEl.textContent = 'Введите название темы.'; errEl.style.display='block'; return; }
+    if(!/^\d{4}$/.test(pin)){ errEl.textContent = 'PIN должен состоять ровно из 4 цифр.'; errEl.style.display='block'; return; }
+    btn.disabled = true; btn.textContent = 'Создаю…';
+    try{
+      await db.collection('topics').add({
+        title, pin, content: '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      document.getElementById('newTopicTitle').value = '';
+      document.getElementById('newTopicPin').value = '';
+    }catch(e){
+      errEl.textContent = 'Ошибка: ' + e.message; errEl.style.display='block';
+    }
+    btn.disabled = false; btn.textContent = 'Создать тему';
+  };
+}
+
+/* ============ SCREEN: admin login ============ */
+function renderAdminLogin(){
+  clearSubs();
+  root.innerHTML = `
+    <div class="screen">
+      ${topbarHtml()}
+      <div class="center-wrap">
+        <div class="card">
+          <h2 class="display">Вход для админа</h2>
+          <p class="sub">Только вы создаёте и удаляете темы.</p>
+          <div class="field">
+            <label>Пароль администратора</label>
+            <input type="password" id="adminPass" placeholder="••••••••">
+          </div>
+          <button class="btn-primary" id="btnDoAdminLogin" style="width:100%;">Войти</button>
+          <div class="error-msg" id="adminError"></div>
+          <button class="btn-ghost btn-small" style="margin-top:14px;" id="btnBackList">Назад к темам</button>
+        </div>
+      </div>
+    </div>`;
+  bindTopbar();
+  document.getElementById('btnBackList').onclick = () => navigate('list');
+
+  document.getElementById('btnDoAdminLogin').onclick = async () => {
+    const pass = document.getElementById('adminPass').value;
+    const errEl = document.getElementById('adminError');
+    errEl.style.display = 'none';
+    if(!pass){ errEl.textContent = 'Введите пароль.'; errEl.style.display = 'block'; return; }
+    const hash = await sha256(pass);
+    const cfgDoc = await db.collection('config').doc('admin').get();
+    if(!cfgDoc.exists){
+      // первый запуск — задаём пароль администратора
+      await db.collection('config').doc('admin').set({ passwordHash: hash });
+      session.isAdmin = true;
+      navigate('list');
+      return;
+    }
+    if(cfgDoc.data().passwordHash === hash){
+      session.isAdmin = true;
+      navigate('list');
+    } else {
+      errEl.textContent = 'Неверный пароль.'; errEl.style.display = 'block';
+    }
+  };
+}
+
+/* ============ SCREEN: topic (pin gate + content) ============ */
+async function renderTopicView(topicId){
+  root.innerHTML = `<div class="screen">${topbarHtml()}<div class="center-wrap"><div class="card">Загрузка…</div></div></div>`;
+  bindTopbar();
+
+  const doc = await db.collection('topics').doc(topicId).get();
+  if(!doc.exists){
+    root.innerHTML = `<div class="screen">${topbarHtml()}<div class="center-wrap"><div class="card"><p>Тема не найдена.</p><button class="btn-ghost" id="back2">Назад</button></div></div></div>`;
+    bindTopbar();
+    document.getElementById('back2').onclick = () => navigate('list');
+    return;
+  }
+  const topic = doc.data();
+
+  const alreadyIn = session.accessedTopics[topicId] || session.isAdmin;
+  if(!alreadyIn){
+    renderPinGate(topicId, topic);
+    return;
+  }
+  renderTopicContent(topicId, topic);
+}
+
+function renderPinGate(topicId, topic){
+  root.innerHTML = `
+    <div class="screen">
+      ${topbarHtml()}
+      <div class="center-wrap">
+        <div class="card">
+          <h2 class="display">${escapeHtml(topic.title)}</h2>
+          <p class="sub">Введите имя и PIN-код темы, чтобы войти.</p>
+          <div class="field">
+            <label>Ваше имя</label>
+            <input id="gateName" placeholder="Например: Анна" value="${escapeHtml(session.userName)}">
+          </div>
+          <div class="field">
+            <label>PIN-код</label>
+            <input id="gatePin" class="pin-input" maxlength="4" placeholder="••••">
+          </div>
+          <button class="btn-primary" id="btnEnter" style="width:100%;">Войти</button>
+          <div class="error-msg" id="gateError"></div>
+          <button class="btn-ghost btn-small" style="margin-top:14px;" id="btnBack3">Назад к темам</button>
+        </div>
+      </div>
+    </div>`;
+  bindTopbar();
+  document.getElementById('btnBack3').onclick = () => navigate('list');
+  document.getElementById('btnEnter').onclick = () => {
+    const name = document.getElementById('gateName').value.trim();
+    const pin = document.getElementById('gatePin').value.trim();
+    const errEl = document.getElementById('gateError');
+    errEl.style.display = 'none';
+    if(!name){ errEl.textContent = 'Введите имя.'; errEl.style.display='block'; return; }
+    if(pin !== topic.pin){ errEl.textContent = 'Неверный PIN.'; errEl.style.display='block'; return; }
+    session.userName = name;
+    localStorage.setItem('board_username', name);
+    session.accessedTopics[topicId] = true;
+    renderTopicContent(topicId, topic);
+  };
+}
+
+let saveTimer = null;
+
+function renderTopicContent(topicId, topic){
+  root.innerHTML = `
+    <div class="screen">
+      ${topbarHtml()}
+      <div class="topic-view">
+        <div class="topic-header">
+          <h2 class="display">${escapeHtml(topic.title)}</h2>
+          <div class="who">вы: <strong>${escapeHtml(session.userName || 'админ')}</strong></div>
+        </div>
+        <textarea id="noteContent" placeholder="Ссылки, заметки, документы — пишите сюда, видно всем в теме…"></textarea>
+        <div class="save-state" id="saveState"></div>
+
+        ${session.isAdmin ? `
+        <div class="admin-bar">
+          <button class="btn-ghost btn-small" id="btnRegenPin">Сменить PIN</button>
+          <button class="btn-danger btn-small" id="btnDeleteTopic">Удалить тему</button>
+        </div>` : ''}
+
+        <div class="comments-section">
+          <h3>Комментарии</h3>
+          <div id="commentsList"></div>
+          <div class="comment-form">
+            <input id="commentInput" placeholder="Написать комментарий или вставить ссылку…">
+            <button class="btn-primary" id="btnSendComment">Отправить</button>
+          </div>
+        </div>
+      </div>
+      <div class="footer-link"><a id="linkBack" href="#">← Все темы</a></div>
+    </div>`;
+  bindTopbar();
+  document.getElementById('linkBack').onclick = (e) => { e.preventDefault(); navigate('list'); };
+
+  const contentEl = document.getElementById('noteContent');
+  contentEl.value = topic.content || '';
+  const saveState = document.getElementById('saveState');
+
+  contentEl.oninput = () => {
+    saveState.textContent = 'Сохраняю…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      await db.collection('topics').doc(topicId).update({
+        content: contentEl.value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      saveState.textContent = 'Сохранено ✓';
+      setTimeout(()=>{ if(saveState.textContent==='Сохранено ✓') saveState.textContent=''; }, 1500);
+    }, 500);
+  };
+
+  // realtime sync of note content from others (skip while actively typing)
+  let typingLock = false;
+  contentEl.addEventListener('focus', ()=> typingLock = true);
+  contentEl.addEventListener('blur', ()=> typingLock = false);
+
+  const unsubTopic = db.collection('topics').doc(topicId).onSnapshot(d => {
+    if(!d.exists) return;
+    const data = d.data();
+    if(!typingLock && contentEl.value !== (data.content || '')){
+      contentEl.value = data.content || '';
+    }
+  });
+  unsubscribers.push(unsubTopic);
+
+  // comments realtime
+  const commentsList = document.getElementById('commentsList');
+  const unsubComments = db.collection('topics').doc(topicId).collection('comments')
+    .orderBy('createdAt','asc')
+    .onSnapshot(snap => {
+      if(snap.empty){
+        commentsList.innerHTML = `<div class="empty-state">Комментариев пока нет.</div>`;
+        return;
+      }
+      commentsList.innerHTML = '';
+      snap.forEach(d => {
+        const c = d.data();
+        const el = document.createElement('div');
+        el.className = 'comment';
+        el.innerHTML = `
+          <div class="c-head">
+            <span class="c-name">${escapeHtml(c.name || 'Гость')}</span>
+            <span class="c-time mono">${fmtTime(c.createdAt)}</span>
+          </div>
+          <div class="c-text">${linkify(c.text || '')}</div>`;
+        commentsList.appendChild(el);
+      });
+      commentsList.scrollTop = commentsList.scrollHeight;
+    });
+  unsubscribers.push(unsubComments);
+
+  const sendComment = async () => {
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    await db.collection('topics').doc(topicId).collection('comments').add({
+      name: session.userName || 'Админ',
+      text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  };
+  document.getElementById('btnSendComment').onclick = sendComment;
+  document.getElementById('commentInput').onkeydown = (e) => { if(e.key === 'Enter') sendComment(); };
+
+  if(session.isAdmin){
+    document.getElementById('btnRegenPin').onclick = async () => {
+      const newPin = prompt('Новый PIN (4 цифры):', genPin());
+      if(newPin && /^\d{4}$/.test(newPin)){
+        await db.collection('topics').doc(topicId).update({ pin: newPin });
+        alert('PIN обновлён: ' + newPin);
+      }
+    };
+    document.getElementById('btnDeleteTopic').onclick = async () => {
+      if(confirm('Удалить тему «' + topic.title + '» вместе со всеми комментариями?')){
+        const commentsSnap = await db.collection('topics').doc(topicId).collection('comments').get();
+        const batch = db.batch();
+        commentsSnap.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        await db.collection('topics').doc(topicId).delete();
+        navigate('list');
+      }
+    };
+  }
+}
+
+/* ============ init ============ */
+navigate('list');
+</script>
+</body>
+</html>
